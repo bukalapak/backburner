@@ -27,7 +27,7 @@ module Backburner
       @respond_timeout     = 120
       @on_error            = nil
       @max_job_retries     = 0
-      @max_job_buries      = 3
+      @max_job_buries      = -1 # never dropped
       @retry_delay         = 5
       @retry_delay_proc    = lambda { |min_retry_delay, num_retries| min_retry_delay + (num_retries ** 3) }
       @default_queues      = []
