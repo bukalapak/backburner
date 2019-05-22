@@ -80,6 +80,65 @@ describe "Backburner::Worker module" do
     end
   end # enqueue
 
+  describe "for enqueue_with_span class method" do
+    TestCarrier = { "id"=>123 }
+    it "should support enqueuing plain job" do
+      Backburner::Worker.enqueue_with_span TestPlainJob, TestCarrier, [7, 9], :ttr => 100, :pri => 2000
+      pop_one_job("test-plain") do |job, body|
+        assert_equal "TestPlainJob", body["class"]
+        assert_equal TestCarrier, body["carrier"]
+        assert_equal [7, 9], body["args"]
+        assert_equal 100, job.ttr
+        assert_equal 2000, job.pri
+      end
+    end # plain
+
+    it "should support enqueuing job with class queue priority" do
+      Backburner::Worker.enqueue_with_span TestJob, TestCarrier, [3, 4], :ttr => 100
+      pop_one_job do |job, body|
+        assert_equal "TestJob", body["class"]
+        assert_equal TestCarrier, body["carrier"]
+        assert_equal [3, 4], body["args"]
+        assert_equal 100, job.ttr
+        assert_equal 100, job.pri
+      end
+    end # queue priority
+
+    it "should support enqueuing job with specified named priority" do
+      Backburner::Worker.enqueue_with_span TestJob, TestCarrier, [3, 4], :ttr => 100, :pri => 'high'
+      pop_one_job do |job, body|
+        assert_equal "TestJob", body["class"]
+        assert_equal TestCarrier, body["carrier"]
+        assert_equal [3, 4], body["args"]
+        assert_equal 100, job.ttr
+        assert_equal 0, job.pri
+      end
+    end # queue named priority
+
+    it "should support enqueuing job with class queue respond_timeout" do
+      Backburner::Worker.enqueue_with_span TestJob, TestCarrier, [3, 4]
+      pop_one_job do |job, body|
+        assert_equal "TestJob", body["class"]
+        assert_equal TestCarrier, body["carrier"]
+        assert_equal [3, 4], body["args"]
+        assert_equal 300, job.ttr
+        assert_equal 100, job.pri
+      end
+    end # queue respond_timeout
+
+    it "should support enqueuing job with custom queue" do
+      Backburner::Worker.enqueue_with_span TestJob, TestCarrier, [6, 7], :queue => "test.bar", :pri => 5000
+      pop_one_job("test.bar") do |job, body|
+        assert_equal "TestJob", body["class"]
+        assert_equal TestCarrier, body["carrier"]
+        assert_equal [6, 7], body["args"]
+        assert_equal 0, job.delay
+        assert_equal 5000, job.pri
+        assert_equal 300, job.ttr
+      end
+    end # custom
+  end # enqueue_with_span
+
   describe "for start class method" do
     it "should initialize and start the worker instance" do
       ech = stub
