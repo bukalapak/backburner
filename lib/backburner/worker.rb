@@ -28,11 +28,41 @@ module Backburner
       pri   = resolve_priority(opts[:pri] || job_class)
       delay = [0, opts[:delay].to_i].max
       ttr   = resolve_respond_timeout(opts[:ttr] || job_class)
-      res   = Backburner::Hooks.invoke_hook_events(job_class, :before_enqueue, *args)
+      res   = Backburner::Hooks.invoke_hook_events(job_class, :before_enqueue, *args) 
 
       return nil unless res # stop if hook is false
 
       data = { :class => job_class.name, :args => args }
+      queue = opts[:queue] && (Proc === opts[:queue] ? opts[:queue].call(job_class) : opts[:queue])
+
+      begin
+        response = nil
+        connection = current_pool.pick_connection
+        connection.retryable do
+          tube = connection.tubes[expand_tube_name(queue || job_class)]
+          response = tube.put(data.to_json, :pri => pri, :delay => delay, :ttr => ttr)
+        end
+        return nil unless Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
+      rescue Beaneater::TimedOutError
+        retry
+      rescue  TCPTimeout::SocketTimeout, Beaneater::NotConnected => e
+        current_pool.deactivate(connection)
+        retry
+      end
+
+      response
+    end
+
+    # Enqueues a job to be processed later by a worker with a span-injected carrier
+    def self.enqueue_with_span(job_class, carrier, args = [], opts = {})
+      pri   = resolve_priority(opts[:pri] || job_class)
+      delay = [0, opts[:delay].to_i].max
+      ttr   = resolve_respond_timeout(opts[:ttr] || job_class)
+      res   = Backburner::Hooks.invoke_hook_events(job_class, :before_enqueue, *args) 
+
+      return nil unless res # stop if hook is false
+
+      data = { :class => job_class.name, :carrier => carrier, :args => args}
       queue = opts[:queue] && (Proc === opts[:queue] ? opts[:queue].call(job_class) : opts[:queue])
 
       begin

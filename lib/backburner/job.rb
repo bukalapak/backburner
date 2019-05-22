@@ -1,3 +1,5 @@
+require 'opentracing'
+
 module Backburner
   # A single backburner job which can be processed and removed by the worker
   class Job < SimpleDelegator
@@ -21,7 +23,7 @@ module Backburner
       end
     end
 
-    attr_accessor :task, :body, :name, :args
+    attr_accessor :task, :body, :name, :args, :carrier
 
     # Construct a job to be parsed and processed
     #
@@ -34,8 +36,8 @@ module Backburner
     def initialize(task)
       @hooks = Backburner::Hooks
       @task = task
-      @body = task.body.is_a?(Hash) ? task.body : JSON.parse(task.body)
-      @name, @args = body["class"], body["args"]
+      @body = task.body.is_a?(Hash) ? task.body : JSON.parse(task.body) 
+      @name, @args, @carrier = body['class'], body['args'], body['carrier']
     rescue => ex # Job was not valid format
       self.bury
       raise JobFormatInvalid, "Job body could not be parsed: #{ex.inspect}"
@@ -54,6 +56,7 @@ module Backburner
     #   @task.process
     #
     def process
+      span = start_span if @carrier
       # Invoke before hook and stop if false
       res = @hooks.invoke_hook_events(job_class, :before_perform, *args)
       return false unless res && task
@@ -72,6 +75,12 @@ module Backburner
     rescue => e
       @hooks.invoke_hook_events(job_class, :on_failure, e, *args)
       raise e
+    ensure
+      span.finish if @carrier
+    end
+
+    def start_span
+      OpenTracing.start_span(method, child_of: OpenTracing.extract(OpenTracing::FORMAT_TEXT_MAP, @carrier))
     end
 
     def drop(e)
