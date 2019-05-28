@@ -35,11 +35,11 @@ describe "Backburner module" do
     end
   end # enqueue
 
-  describe "for enqueue_with_span method" do
+  describe "for enqueue_with_tracer method" do
     before do
       TestCarrier = { "id"=>123 }
-      Backburner.enqueue_with_span TestBackburnersJob, TestCarrier, 5, 6
-      Backburner.enqueue_with_span TestBackburnersJob, TestCarrier, 15, 10
+      Backburner.enqueue_with_tracer TestBackburnersJob, TestCarrier, 5, 6
+      Backburner.enqueue_with_tracer TestBackburnersJob, TestCarrier, 15, 10
       silenced(2) do
         worker = Backburner::Workers::Simple.new('test.jobber')
         worker.prepare
@@ -51,7 +51,7 @@ describe "Backburner module" do
       assert_equal 20, $backburner_sum
       assert_same_elements [6, 10], $backburner_numbers
     end
-  end # enqueue_with_span
+  end # enqueue_with_tracer
 
 
   describe "for work method" do

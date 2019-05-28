@@ -54,7 +54,7 @@ module Backburner
     end
 
     # Enqueues a job to be processed later by a worker with a span-injected carrier
-    def self.enqueue_with_span(job_class, carrier, args = [], opts = {})
+    def self.enqueue_with_tracer(job_class, carrier, args = [], opts = {})
       pri   = resolve_priority(opts[:pri] || job_class)
       delay = [0, opts[:delay].to_i].max
       ttr   = resolve_respond_timeout(opts[:ttr] || job_class)

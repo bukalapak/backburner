@@ -32,9 +32,9 @@ module Backburner
     # Enqueue a job to be performed with given arguments
     # and span-injected carrier
     # @example
-    # => Backburner.enqeue_with_span NewsletterSender, carrier, self.id, user.id
-    def enqueue_with_span(job_class, carrier, *args)
-      Backburner::Worker.enqueue_with_span(job_class, carrier, args, {})
+    # => Backburner.enqeue_with_tracer NewsletterSender, carrier, self.id, user.id
+    def enqueue_with_tracer(job_class, carrier, *args)
+      Backburner::Worker.enqueue_with_tracer(job_class, carrier, args, {})
     end
 
     # Begins working on jobs enqueued with optional tubes specified
