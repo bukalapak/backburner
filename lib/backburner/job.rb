@@ -76,11 +76,11 @@ module Backburner
       @hooks.invoke_hook_events(job_class, :on_failure, e, *args)
       raise e
     ensure
-      span.finish if @carrier
+      span.finish unless span == nil
     end
 
     def start_span
-      OpenTracing.start_span(method, child_of: OpenTracing.extract(OpenTracing::FORMAT_TEXT_MAP, @carrier))
+      OpenTracing.start_span(@name, child_of: OpenTracing.extract(OpenTracing::FORMAT_TEXT_MAP, @carrier))
     end
 
     def drop(e)
