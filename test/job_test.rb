@@ -15,31 +15,33 @@ describe "Backburner::Job module" do
   describe "for initialize" do
     describe "with hash" do
       before do
-        @task_body =  { "class" => "NewsletterSender", "args" => ["foo@bar.com", "bar@foo.com"] }
+        @task_body =  { "class" => "NewsletterSender", "args" => ["foo@bar.com", "bar@foo.com"], "carrier" => {"x-datadog-trace-id"=>8874788463021212740, "x-datadog-parent-id"=>4400636780931940456, "x-datadog-sampling-priority"=>nil, "x-datadog-origin"=>nil }}
         @task = stub(:body => @task_body, :ttr => 120, :delete => true, :bury => true)
       end
 
       it "should create job with correct task data" do
         @job = Backburner::Job.new(@task)
         assert_equal @task, @job.task
-        assert_equal ["class", "args"], @job.body.keys
+        assert_equal ["class", "args", "carrier"], @job.body.keys
         assert_equal @task_body["class"], @job.name
         assert_equal @task_body["args"], @job.args
+        assert_equal @task_body["carrier"], @job.carrier
       end
     end # with hash
 
     describe "with json string" do
       before do
-        @task_body =  { "class" => "NewsletterSender", "args" => ["foo@bar.com", "bar@foo.com"] }
+        @task_body =  { "class" => "NewsletterSender", "args" => ["foo@bar.com", "bar@foo.com"], "carrier" => {"x-datadog-trace-id"=>8874788463021212740, "x-datadog-parent-id"=>4400636780931940456, "x-datadog-sampling-priority"=>nil, "x-datadog-origin"=>nil }}
         @task = stub(:body => @task_body.to_json, :ttr => 120, :delete => true, :bury => true)
       end
 
       it "should create job with correct task data" do
         @job = Backburner::Job.new(@task)
         assert_equal @task, @job.task
-        assert_equal ["class", "args"], @job.body.keys
+        assert_equal ["class", "args", "carrier"], @job.body.keys
         assert_equal @task_body["class"], @job.name
         assert_equal @task_body["args"], @job.args
+        assert_equal @task_body["carrier"], @job.carrier
       end
     end # with json
 

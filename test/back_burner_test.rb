@@ -35,6 +35,25 @@ describe "Backburner module" do
     end
   end # enqueue
 
+  describe "for enqueue_with_tracer method" do
+    before do
+      TestCarrier = { "id"=>123 }
+      Backburner.enqueue_with_tracer TestBackburnersJob, TestCarrier, 5, 6
+      Backburner.enqueue_with_tracer TestBackburnersJob, TestCarrier, 15, 10
+      silenced(2) do
+        worker = Backburner::Workers::Simple.new('test.jobber')
+        worker.prepare
+        2.times { worker.work_one_job }
+      end
+    end
+
+    it "can run jobs using #run method" do
+      assert_equal 20, $backburner_sum
+      assert_same_elements [6, 10], $backburner_numbers
+    end
+  end # enqueue_with_tracer
+
+
   describe "for work method" do
     it "invokes worker simple start" do
       Backburner::Workers::Simple.expects(:start).with(["foo", "bar"])
