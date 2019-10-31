@@ -140,6 +140,7 @@ module Backburner
       end
 
       def kill
+        log_info "killing all pools"
         @thread_pools.each { |_name, pool| pool.kill unless pool.shutdown? }
       end
 
